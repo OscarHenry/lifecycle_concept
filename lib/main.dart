@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MyHomePage(),
+      home: const MyHomePage2(),
     );
   }
 }
@@ -178,5 +178,131 @@ mixin GlobalRefreshMixin<T extends StatefulWidget> on State<T>
     log('$runtimeType didPushRouteInformation');
     // TODO: implement didPushRouteInformation
     throw UnimplementedError();
+  }
+}
+
+class AppLifecycleWidget extends StatefulWidget {
+  const AppLifecycleWidget({
+    Key? key,
+    required this.child,
+    this.onChangeState,
+    this.onResumeCallback,
+  }) : super(key: key);
+
+  /// The child widget
+  final Widget child;
+
+  /// This callback will be called when the app lifecycle state changes
+  final void Function(AppLifecycleState state)? onChangeState;
+
+  /// This callback will be called when the app is resumed
+  final void Function()? onResumeCallback;
+  @override
+  State<AppLifecycleWidget> createState() => _AppLifecycleWidgetState();
+}
+
+class _AppLifecycleWidgetState extends State<AppLifecycleWidget>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+
+    /// Add this line to your initState method
+    ///
+    /// This will register the observer to the widget binding
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget.onResumeCallback?.call();
+    }
+    widget.onChangeState?.call(state);
+  }
+
+  @override
+  void dispose() {
+    /// Add this line to your dispose method
+    ///
+    /// This will unregister the observer from the widget binding
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}
+
+class MyHomePage2 extends StatefulWidget {
+  const MyHomePage2({Key? key}) : super(key: key);
+
+  @override
+  State<MyHomePage2> createState() => _MyHomePage2State();
+}
+
+class _MyHomePage2State extends State<MyHomePage2> {
+  late int _counter;
+  late int rebuild;
+
+  @override
+  void initState() {
+    _counter = 0;
+    rebuild = 0;
+    super.initState();
+  }
+
+  void _incrementCounter() {
+    setState(() {
+      _counter++;
+    });
+  }
+
+  void onResume() {
+    /// Here you reset the counter to 0 and increment the rebuild counter
+    if (mounted) {
+      setState(() {
+        _counter = 0;
+        rebuild++;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppLifecycleWidget(
+      onResumeCallback: onResume,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Lifecycle App')),
+        body: Center(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'When app is resumed,the widget will rebuild, the counter will be reset to 0 and the rebuild counter will be incremented ($rebuild)',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                const Text('You have pushed the button this many times:'),
+                Text(
+                  '$_counter',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _incrementCounter,
+          tooltip: 'Increment',
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
   }
 }
